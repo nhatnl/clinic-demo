@@ -1,0 +1,23 @@
+name: clinic-demo
+
+services:
+  db:
+    image: postgres:18
+    enviroments:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    port:
+      - 5432:5432
+  backend:
+    build: ./backend
+    port:
+      - 8000:8000
+    depends_on:
+      - db
+  frontend:
+    build: ./frontend
+    port:
+      - 3000:3000
+    depends_on:
+      - backend
