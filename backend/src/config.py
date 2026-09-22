@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
+
 class Config(BaseSettings):
     DATABASE_URL: PostgresDsn
 
@@ -12,5 +13,8 @@ class Config(BaseSettings):
         env_file=BACKEND_DIR / ".env",
         env_file_encoding="utf-8",
     )
+
+    JWT_SECRET: str = "this-must-be-changed"
+
 
 settings = Config()
