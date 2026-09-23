@@ -7,7 +7,7 @@ from src.auth.constants import Roles
 
 class SignIn(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=10)
+    password: str = Field(min_length=6)
 
     @field_validator("password")
     @classmethod
@@ -59,7 +59,10 @@ class UserCreate(BaseModel):
         return password
 
 
-class Token(BaseModel):
+class AccessToken(BaseModel):
     access_token: str
-    refresh_token: str
     expired_at: str
+
+
+class TokenData(BaseModel):
+    email: str

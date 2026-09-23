@@ -7,6 +7,7 @@ from parse_icd10cm_data import (
 )
 from sqlalchemy.dialects.postgresql import insert
 from sqlmodel import Session
+
 from src.database import engine
 from src.diagnosis.model import Diagnosis
 

@@ -8,12 +8,13 @@ from src.admin.dependencies import require_admin
 from src.auth.schemas import UserCreate
 from src.database import get_session
 
-router = APIRouter(prefix="/admin", tags=["Admin"], dependencies=[require_admin])
-
-router.post("/create-user")
+router = APIRouter(
+    prefix="/admin", tags=["Admin"], dependencies=[Depends(require_admin)]
+)
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
+@router.post("/create-user")
 def create_user(user_data: UserCreate, session: SessionDep):
-    return services.create_user(user_data, session)
+    return services.admin_create_user(user_data, session)

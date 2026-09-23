@@ -2,28 +2,29 @@ from typing import Annotated
 
 import jwt
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.auth.exceptions import credentials_exception
+from src.auth.constants import JWT_ALGORITHM
+from src.auth.exceptions import InvalidJwtToken
 from src.config import settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/sign-in")
-
-JWT_SECRET = settings.JWT_SECRET
-JWT_ALGORITHM = "HS256"
+bearer_scheme = HTTPBearer()
 
 
-def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
+def get_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
+) -> dict:
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    except jwt.InvalidTokenError:
-        raise credentials_exception from None
-
+        payload = jwt.decode(
+            credentials.credentials, settings.JWT_SECRET, algorithms=[JWT_ALGORITHM]
+        )
+    except jwt.InvalidTokenError as exc:
+        raise InvalidJwtToken from exc
     user_id = payload.get("sub")
     role = payload.get("role")
 
     if not user_id:
-        raise credentials_exception
+        raise InvalidJwtToken
 
     return {
         "id": user_id,

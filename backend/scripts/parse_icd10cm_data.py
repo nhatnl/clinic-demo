@@ -1,13 +1,13 @@
 import argparse
-from itertools import islice
-from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
+from itertools import islice
+from pathlib import Path
+
+from src.diagnosis.model import Diagnosis
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(BACKEND_DIR))
-
-from src.diagnosis.model import Diagnosis
 
 
 DATA_DIR = BACKEND_DIR / "docs/data"

@@ -26,6 +26,7 @@ from sqlmodel import SQLModel
 
 from src.diagnosis.model import Diagnosis  # noqa: E402
 from src.patients.models import Patient  # noqa: E402
+from src.auth.models import User
 
 target_metadata = SQLModel.metadata
 

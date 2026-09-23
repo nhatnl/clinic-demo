@@ -15,6 +15,7 @@ class Config(BaseSettings):
     )
 
     JWT_SECRET: str = "this-must-be-changed"
+    JWT_ACCESS_TOKEN_EXPIRE_DURATION: int = 60
 
 
 settings = Config()
