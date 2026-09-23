@@ -36,3 +36,4 @@ coverage/
 .fleet/
 .DS_Store
 Thumbs.db
+tmp/

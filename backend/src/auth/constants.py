@@ -5,6 +5,7 @@ class Roles(IntEnum):
     ADMIN = 1
     DOCTOR = 2
     NURSE = 3
+    USER = 4 #default
 
 
 class UserStatus(IntEnum):
