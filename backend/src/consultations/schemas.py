@@ -7,7 +7,9 @@ DiagnosisCode = Annotated[
     str,
     StringConstraints(strip_whitespace=True, to_upper=True, min_length=1, max_length=8),
 ]
-ConsultationNote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+ConsultationNote = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1)
+]
 
 
 class ConsultationCreate(BaseModel):
@@ -21,6 +23,13 @@ class ConsultationCreate(BaseModel):
         if len(codes) != len(set(codes)):
             raise ValueError("Diagnosis codes must be unique")
         return codes
+
+
+class ConsultationQueryParams(BaseModel):
+    patient: str | None = Field(default=None, min_length=1, max_length=50)
+    patient_name: str | None = Field(default=None, min_length=1, max_length=50)
+    patient_id: int | None = Field(default=None, gt=0)
+    diagnosis_code: str | None = Field(default=None, min_length=1, max_length=8)
 
 
 class PatientResponse(BaseModel):

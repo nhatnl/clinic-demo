@@ -38,18 +38,24 @@ def create_consultation(data: ConsultationCreate, session: Session) -> Consultat
 
 def list_consultations(
     session: Session,
-    patient: str | None = None,
+    patient_name: str | None = None,
     diagnosis_code: str | None = None,
+    patient_id: int | None = None,
 ) -> list[Consultation]:
     statement = select(Consultation).options(
         selectinload(Consultation.patient),
         selectinload(Consultation.diagnoses),
     )
 
-    if patient is not None:
+    if patient_name is not None:
         statement = statement.join(Patient).where(
-            Patient.name.ilike(f"%{patient.strip()}%")
+            (Patient.first_name + " " + Patient.last_name).ilike(
+                f"%{patient_name.strip()}%"
+            )
         )
+
+    if patient_id is not None:
+        statement = statement.where(Consultation.patient_id == patient_id)
 
     if diagnosis_code is not None:
         statement = statement.join(Consultation.diagnoses).where(
@@ -61,3 +67,17 @@ def list_consultations(
         Consultation.id.desc(),
     )
     return list(session.exec(statement).all())
+
+
+def get_consultation(consultation_id: int, session: Session) -> Consultation:
+    consultation = session.exec(
+        select(Consultation)
+        .where(Consultation.id == consultation_id)
+        .options(
+            selectinload(Consultation.patient),
+            selectinload(Consultation.diagnoses),
+        )
+    ).first()
+    if consultation is None:
+        raise exceptions.ConsultationNotFound
+    return consultation

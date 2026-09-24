@@ -30,8 +30,8 @@ class ConsultationApiTest(unittest.TestCase):
         )
         with Session(self.engine) as session:
             session.add_all([
-                Patient(id=1, name="An Nguyen", age=32),
-                Patient(id=2, name="Binh Tran", age=45),
+                Patient(id=1, first_name="An", last_name="Nguyen", age=32),
+                Patient(id=2, first_name="Binh", last_name="Tran", age=45),
                 Diagnosis(
                     code="A00.0", name="Cholera", description="Cholera",
                     is_valid_for_submission=True,
@@ -135,14 +135,30 @@ class ConsultationApiTest(unittest.TestCase):
 
         self.assertEqual(ids(), [third["id"], second["id"], first["id"]])
         self.assertEqual(ids({"patient": "  nGuYeN  "}), [third["id"], first["id"]])
+        self.assertEqual(ids({"patient_name": "  nGuYeN  "}), [third["id"], first["id"]])
         self.assertEqual(ids({"diagnosis_code": " b01.1 "}), [third["id"], second["id"]])
         self.assertEqual(ids({"patient": "Nguyen", "diagnosis_code": "B01.1"}), [third["id"]])
+        self.assertEqual(ids({"patient_name": "An Nguyen", "diagnosis_code": "B01.1"}), [third["id"]])
+        self.assertEqual(ids({"patient_id": 1}), [third["id"], first["id"]])
+        self.assertEqual(ids({"patient_id": 2}), [second["id"]])
         self.assertEqual(ids({"patient": "Nobody"}), [])
+
+        detail = self.client.get(f"/consultation/{third['id']}")
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.json()["id"], third["id"])
+        self.assertEqual(detail.json()["patient"]["id"], 1)
+        self.assertEqual(
+            self.client.get("/consultation/999").json(),
+            {"detail": "Consultation not found"},
+        )
 
     def test_query_length_validation(self) -> None:
         for params in (
             {"patient": ""},
             {"patient": "x" * 51},
+            {"patient_name": ""},
+            {"patient_name": "x" * 51},
+            {"patient_id": 0},
             {"diagnosis_code": ""},
             {"diagnosis_code": "x" * 9},
         ):

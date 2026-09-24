@@ -5,4 +5,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (session && to.path === '/login') return navigateTo('/consultations')
   if (to.path.startsWith('/admin') && session?.role !== 1)
     return navigateTo('/consultations')
+  if (to.path === '/patients/new' && ![1, 2, 3].includes(session?.role ?? 0))
+    return navigateTo('/consultations')
 })

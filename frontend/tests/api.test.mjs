@@ -31,6 +31,13 @@ test(
       created_at: '2026-09-24T08:00:00Z',
       updated_at: '2026-09-24T08:00:00Z',
     }
+    const patient = {
+      id: 7,
+      first_name: 'Alex',
+      last_name: 'Smith',
+      age: 32,
+      gender: 'MALE',
+    }
     let mode = 'ok'
     const requests = []
     const upstream = createServer(async (req, res) => {
@@ -89,6 +96,23 @@ test(
       }
       if (req.url.startsWith('/diagnosis/')) {
         res.end(JSON.stringify(mode === 'stub' ? null : [diagnosis]))
+        return
+      }
+      if (req.url === '/patients/7') {
+        res.end(JSON.stringify(patient))
+        return
+      }
+      if (req.url === '/patients/' && req.method === 'GET') {
+        res.end(JSON.stringify([patient]))
+        return
+      }
+      if (req.url === '/patients/' && req.method === 'POST') {
+        res.writeHead(201)
+        res.end(JSON.stringify(mode === 'stub' ? null : patient))
+        return
+      }
+      if (req.url === '/consultation/1') {
+        res.end(JSON.stringify(consultation))
         return
       }
       if (req.url.startsWith('/consultation')) {
@@ -203,6 +227,10 @@ test(
       for (const path of [
         '/consultations',
         '/consultations/new',
+        '/patients',
+        '/patients/new',
+        '/patients/7',
+        '/consultations/1',
         '/search',
         '/diagnoses',
         '/admin/users',
@@ -214,6 +242,24 @@ test(
           /must-never-reach-the-browser|test-signature/,
         )
       }
+      const patientsPage = await (await request('/patients', { headers })).text()
+      assert.match(patientsPage, /Alex Smith/)
+      assert.match(patientsPage, /List consultations/)
+      assert.match(patientsPage, /List patients/)
+      assert.match(patientsPage, /href="\/patients\/7"/)
+      const patientPage = await (await request('/patients/7', { headers })).text()
+      assert.match(patientPage, /Alex Smith/)
+      assert.match(patientPage, /\/consultations\/1/)
+      const newPatientPage = await (await request('/patients/new', { headers })).text()
+      assert.match(newPatientPage, /First name/)
+      const newConsultationPage = await (await request('/consultations/new', { headers })).text()
+      assert.match(newConsultationPage, /Search by first or last name/)
+      assert.match(newConsultationPage, /role="combobox"/)
+      assert.match(newConsultationPage, /New patient/)
+      assert.ok(requests.some((item) => item.url === '/consultation?patient_id=7'))
+      const consultationPage = await (await request('/consultations/1', { headers })).text()
+      assert.match(consultationPage, /Follow up in one week/)
+      assert.match(consultationPage, /\/patients\/7/)
       assert.deepEqual(
         await (await request('/api/diagnosis?search=A00', { headers })).json(),
         [diagnosis],
@@ -226,6 +272,32 @@ test(
         requests.at(-1).url,
         '/consultation?patient=Alex&diagnosis_code=A00.0',
       )
+      assert.deepEqual(
+        await (await request('/api/patients/7', { headers })).json(),
+        patient,
+      )
+      assert.deepEqual(
+        await (await request('/api/patients', { headers })).json(),
+        [patient],
+      )
+      assert.equal(requests.at(-1).url, '/patients/')
+      assert.deepEqual(
+        await (await request('/api/consultation/1', { headers })).json(),
+        consultation,
+      )
+      await request('/api/consultation?patient_id=7', { headers })
+      assert.equal(requests.at(-1).url, '/consultation?patient_id=7')
+      assert.equal((await request('/api/patients/not-an-id', { headers })).status, 404)
+      const patientInput = {
+        first_name: 'Alex',
+        last_name: 'Smith',
+        age: 32,
+        gender: 'MALE',
+      }
+      const patientCreated = await post('/api/patients', patientInput, cookie)
+      assert.equal(patientCreated.status, 201)
+      assert.deepEqual(await patientCreated.json(), patient)
+      assert.deepEqual(requests.at(-1).body, patientInput)
       const input = {
         patient_id: 7,
         diagnosis_codes: ['A00.0'],

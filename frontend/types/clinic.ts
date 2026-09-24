@@ -16,6 +16,14 @@ export interface Patient {
   age: number
 }
 
+export interface PatientRecord {
+  id: number
+  first_name: string
+  last_name: string
+  age: number
+  gender: string
+}
+
 export interface Consultation {
   id: number
   patient: Patient

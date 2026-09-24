@@ -28,3 +28,7 @@ class InvalidJwtToken(Error):
 
 class UserAlreadyExist(Error):
     pass
+
+
+class ForbiddenError(Error):
+    pass

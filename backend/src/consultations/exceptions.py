@@ -7,3 +7,7 @@ class PatientNotFound(Error):
 
 class DiagnosisNotFound(Error):
     pass
+
+
+class ConsultationNotFound(Error):
+    pass

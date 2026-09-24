@@ -527,6 +527,10 @@ tbody tr:last-child td {
   color: #364e40;
   font-size: 12px;
 }
+.patient-cell a:hover,
+.detail-link:hover {
+  text-decoration: underline;
+}
 .patient-cell small {
   display: block;
   color: #94a197;
@@ -589,6 +593,103 @@ tbody tr:last-child td {
 .full-note {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.detail-sections {
+  display: grid;
+  gap: 18px;
+  max-width: 940px;
+}
+.detail-card {
+  padding: 24px 26px;
+}
+.detail-card h2 {
+  margin-bottom: 14px;
+}
+.detail-card p + p {
+  margin-top: 10px;
+}
+.detail-link {
+  color: var(--primary);
+  font-weight: 600;
+}
+.patient-create-form {
+  margin-bottom: 22px;
+}
+.patient-create-secondary {
+  margin-top: 20px;
+}
+.patient-create-actions {
+  margin-top: 22px;
+  padding-bottom: 0;
+}
+.patient-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.patient-picker-heading label {
+  margin-bottom: 0;
+}
+.patient-picker-heading .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  white-space: nowrap;
+}
+.patient-picker-heading .icon {
+  width: 14px;
+  height: 14px;
+}
+.patient-combobox {
+  position: relative;
+}
+.patient-section {
+  overflow: visible;
+}
+.patient-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  box-shadow: 0 12px 28px #263c371c;
+}
+.patient-suggestion {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: white;
+  color: #344e3e;
+  text-align: left;
+}
+.patient-suggestion:last-child {
+  border-bottom: 0;
+}
+.patient-suggestion:hover,
+.patient-suggestion.active,
+.patient-suggestion[aria-selected='true'] {
+  background: #edf5f0;
+}
+.patient-suggestion small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.patient-suggestions-empty {
+  padding: 14px;
+  color: var(--muted);
+  font-size: 11px;
 }
 .table-footer {
   display: flex;

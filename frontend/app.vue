@@ -44,13 +44,14 @@ async function logout() {
       <nav aria-label="Main navigation" class="main-nav">
         <NuxtLink
           to="/consultations"
-          :class="{ active: route.path === '/consultations' }"
-          ><AppIcon name="grid" />Consultations</NuxtLink
+          :class="{ active: route.path.startsWith('/consultations') }"
+          ><AppIcon name="grid" />List consultations</NuxtLink
         >
         <NuxtLink
-          to="/consultations/new"
-          :class="{ active: route.path === '/consultations/new' }"
-          ><AppIcon name="plus" />New consultation</NuxtLink
+          v-if="session && [1, 2, 3].includes(session.role)"
+          to="/patients"
+          :class="{ active: route.path.startsWith('/patients') }"
+          ><AppIcon name="users" />List patients</NuxtLink
         >
         <NuxtLink to="/search" :class="{ active: route.path === '/search' }"
           ><AppIcon name="search" />Search records</NuxtLink

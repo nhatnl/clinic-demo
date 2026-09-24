@@ -9,7 +9,11 @@ from src.admin.schemas import UserResponse
 from src.auth.schemas import UserCreate
 from src.database import get_session
 
-router = APIRouter(prefix="/admin", tags=["Admin"])
+router = APIRouter(
+    prefix="/admin",
+    tags=["Admin"],
+    dependencies=[Depends(require_admin)],
+)
 
 SessionDep = Annotated[Session, Depends(get_session)]
 

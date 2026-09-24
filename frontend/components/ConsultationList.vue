@@ -234,7 +234,7 @@ const todayCount = computed(
                       item.patient.name.slice(0, 1).toUpperCase()
                     }}</span>
                     <div>
-                      <strong>{{ item.patient.name }}</strong
+                      <strong><NuxtLink :to="`/patients/${item.patient.id}`">{{ item.patient.name }}</NuxtLink></strong
                       ><small
                         >{{ item.patient.age }} years · Patient #{{ item.patient.id }}</small
                       >
@@ -284,6 +284,7 @@ const todayCount = computed(
                     <div>
                       <h3>Treatment notes</h3>
                       <p class="full-note">{{ item.note }}</p>
+                      <NuxtLink :to="`/consultations/${item.id}`" class="text-button">Open consultation</NuxtLink>
                       <NuxtLink :to="`/consultations/new?patient_id=${item.patient.id}`" class="text-button">New consultation for this patient</NuxtLink>
                     </div>
                   </div>

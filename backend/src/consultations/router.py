@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
 from src.consultations import services
-from src.consultations.schemas import ConsultationCreate, ConsultationResponse
+from src.consultations.schemas import (
+    ConsultationCreate,
+    ConsultationQueryParams,
+    ConsultationResponse,
+)
 from src.database import get_session
 
 router = APIRouter(tags=["Consultations"])
@@ -19,17 +23,21 @@ SessionDep = Annotated[Session, Depends(get_session)]
 def create_consultation(
     data: ConsultationCreate,
     session: SessionDep,
-) -> ConsultationResponse:
+):
     return services.create_consultation(data, session)
 
 
 @router.get("/consultation", response_model=list[ConsultationResponse])
 def list_consultations(
     session: SessionDep,
-    patient: Annotated[str | None, Query(min_length=1, max_length=50)] = None,
-    diagnosis_code: Annotated[
-        str | None,
-        Query(min_length=1, max_length=8),
-    ] = None,
-) -> list[ConsultationResponse]:
-    return services.list_consultations(session, patient, diagnosis_code)
+    params: Annotated[ConsultationQueryParams, Query()],
+):
+    patient_name = params.patient_name if params.patient_name is not None else params.patient
+    return services.list_consultations(
+        session, patient_name, params.diagnosis_code, params.patient_id
+    )
+
+
+@router.get("/consultation/{consultation_id}", response_model=ConsultationResponse)
+def get_consultation(consultation_id: int, session: SessionDep):
+    return services.get_consultation(consultation_id, session)

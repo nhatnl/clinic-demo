@@ -15,11 +15,7 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(diagnosis_router)
 app.include_router(consultation_router)
-app.include_router(
-    patients_router,
-    prefix="/patients",
-    tags=["Patients"],
-)
+app.include_router(patients_router)
 
 
 @app.exception_handler(Error)

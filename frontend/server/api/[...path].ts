@@ -5,6 +5,8 @@ const endpoints: Record<string, string> = {
   'GET diagnosis': '/diagnosis/',
   'GET consultation': '/consultation',
   'POST consultation': '/consultation',
+  'GET patients': '/patients/',
+  'POST patients': '/patients/',
   'POST admin/create-user': '/admin/create-user',
 }
 
@@ -33,6 +35,17 @@ function validConsultation(value: unknown): boolean {
     typeof value.updated_at === 'string' &&
     Array.isArray(value.diagnoses) &&
     value.diagnoses.every(validDiagnosis)
+  )
+}
+
+function validPatient(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'number' &&
+    typeof value.first_name === 'string' &&
+    typeof value.last_name === 'string' &&
+    typeof value.age === 'number' &&
+    typeof value.gender === 'string'
   )
 }
 
@@ -78,7 +91,13 @@ export default defineEventHandler(async (event) => {
   if (path === 'session' && method === 'GET')
     return { user: session ? { id: session.id, role: session.role } : null }
   const signingIn = path === 'sign-in' && method === 'POST'
-  const endpoint = signingIn ? '/auth/sign-in' : endpoints[`${method} ${path}`]
+  const patientDetail = method === 'GET' && /^patients\/[1-9]\d*$/.test(path)
+  const consultationDetail = method === 'GET' && /^consultation\/[1-9]\d*$/.test(path)
+  const endpoint = signingIn
+    ? '/auth/sign-in'
+    : patientDetail || consultationDetail
+      ? `/${path}`
+      : endpoints[`${method} ${path}`]
   if (!endpoint)
     throw createError({
       statusCode: 404,
@@ -120,6 +139,8 @@ export default defineEventHandler(async (event) => {
       message = 'You do not have permission to perform this action.'
     else if (statusCode === 404 && path === 'consultation' && method === 'POST' && typeof detail === 'string')
       message = detail
+    else if (statusCode === 404 && (patientDetail || consultationDetail))
+      message = typeof detail === 'string' ? detail : 'Record not found.'
     else if (statusCode === 404 || statusCode === 405)
       message = 'This feature is not yet available from the backend.'
     else if (statusCode < 500 && Array.isArray(detail))
@@ -131,6 +152,7 @@ export default defineEventHandler(async (event) => {
     else if (statusCode < 500 && typeof detail === 'string') message = detail
     if (statusCode >= 500 && path === 'admin/create-user') message = 'Account creation could not be confirmed. Check whether the account exists before trying again.'
     if (statusCode >= 500 && path === 'consultation' && method === 'POST') message = 'The consultation could not be confirmed. Check consultation history before trying again. Your form is preserved.'
+    if (statusCode >= 500 && path === 'patients' && method === 'POST') message = 'Patient creation could not be confirmed. Check patient records before trying again.'
     throw createError({ statusCode, message })
   }
 
@@ -158,8 +180,12 @@ export default defineEventHandler(async (event) => {
   }
   if (
     method === 'GET' &&
-    (!Array.isArray(result) ||
-      !result.every(path === 'diagnosis' ? (value) => validDiagnosis(value) && typeof value.is_valid_for_submission === 'boolean' : validConsultation))
+    (patientDetail
+      ? !validPatient(result)
+      : consultationDetail
+        ? !validConsultation(result)
+        : !Array.isArray(result) ||
+          !result.every(path === 'diagnosis' ? (value) => validDiagnosis(value) && typeof value.is_valid_for_submission === 'boolean' : path === 'patients' ? validPatient : validConsultation))
   ) {
     throw createError({
       statusCode: 502,
@@ -175,6 +201,12 @@ export default defineEventHandler(async (event) => {
       statusCode: 502,
       message:
         'The service did not confirm the saved consultation. Check consultation history before trying again.',
+    })
+  }
+  if (path === 'patients' && method === 'POST' && !validPatient(result)) {
+    throw createError({
+      statusCode: 502,
+      message: 'The service did not confirm the new patient. Check patient records before trying again.',
     })
   }
   if (method === 'POST') setResponseStatus(event, 201)

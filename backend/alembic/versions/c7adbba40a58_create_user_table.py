@@ -35,6 +35,17 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
+    op.execute(sa.text("""
+        INSERT INTO users (created_at, updated_at, email, status, role, password_hash)
+        VALUES (
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP,
+            'admin@kyanon.digital',
+            'ACTIVE',
+            'ADMIN',
+            '$argon2id$v=19$m=65536,t=3,p=4$KKEMIaFFi+pUrwis0vp+ZQ$tfGemotYoIdL9ibdz+gFEn5RbffmGqEfKoLBc+XNUBM'
+        )
+    """))
 
 
 def downgrade() -> None:

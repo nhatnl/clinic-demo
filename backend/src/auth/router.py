@@ -15,7 +15,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/sign-in", response_model=AccessToken)
-def sign_in(credentials: SignIn, session: SessionDep) -> AccessToken:
+def sign_in(credentials: SignIn, session: SessionDep):
     user = authenticated_user(credentials, session)
 
     access_token_expires = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_DURATION)
