@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, status
 from sqlmodel import Session
 
+from src.auth.dependencies import get_current_user
 from src.consultations import services
 from src.consultations.schemas import (
     ConsultationCreate,
@@ -11,7 +12,10 @@ from src.consultations.schemas import (
 )
 from src.database import get_session
 
-router = APIRouter(tags=["Consultations"])
+router = APIRouter(
+    tags=["Consultations"],
+    dependencies=[Depends(get_current_user)],
+)
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
@@ -23,8 +27,9 @@ SessionDep = Annotated[Session, Depends(get_session)]
 def create_consultation(
     data: ConsultationCreate,
     session: SessionDep,
+    current_user: Annotated[dict, Depends(get_current_user)],
 ):
-    return services.create_consultation(data, session)
+    return services.create_consultation(data, session, current_user)
 
 
 @router.get("/consultation", response_model=list[ConsultationResponse])

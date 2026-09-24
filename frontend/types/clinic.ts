@@ -24,9 +24,18 @@ export interface PatientRecord {
   gender: string
 }
 
+export interface ConsultationCreator {
+  id: number
+  email: string
+  first_name?: string | null
+  last_name?: string | null
+  role: number
+}
+
 export interface Consultation {
   id: number
   patient: Patient
+  created_by: ConsultationCreator
   note: string
   diagnoses: Diagnosis[]
   created_at: string

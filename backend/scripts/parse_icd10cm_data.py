@@ -4,11 +4,10 @@ import xml.etree.ElementTree as ET
 from itertools import islice
 from pathlib import Path
 
-from src.diagnosis.model import Diagnosis
-
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-sys.path.append(str(BACKEND_DIR))
+sys.path.insert(0, str(BACKEND_DIR))
 
+from src.diagnosis.model import Diagnosis  # noqa: E402
 
 DATA_DIR = BACKEND_DIR / "docs/data"
 DEFAULT_XML_FILENAME = "icd10c-tabular-April-1-2026.xml"

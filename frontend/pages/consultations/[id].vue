@@ -8,6 +8,12 @@ if (!/^[1-9]\d*$/.test(id)) throw createError({ statusCode: 404, message: 'Consu
 const { data: consultation, status, error, refresh } =
   await useFetch<Consultation>(`/api/consultation/${id}`)
 useHead({ title: 'Consultation detail · ClinicCare' })
+const creatorName = computed(() => {
+  const creator = consultation.value?.created_by
+  return creator
+    ? [creator.first_name, creator.last_name].filter(Boolean).join(' ') || creator.email
+    : 'Unknown user'
+})
 function date(value: string) {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return '—'
@@ -27,7 +33,7 @@ function date(value: string) {
       <div>
         <span class="eyebrow">CONSULTATION RECORD</span>
         <h1>Consultation #{{ consultation.id }}<span class="heading-dot">.</span></h1>
-        <p>Recorded {{ date(consultation.created_at) }}</p>
+        <p>Recorded {{ date(consultation.created_at) }} by {{ creatorName }}</p>
       </div>
       <NuxtLink :to="`/patients/${consultation.patient.id}`" class="button secondary">View patient</NuxtLink>
     </div>
@@ -44,6 +50,11 @@ function date(value: string) {
       <section class="card detail-card">
         <h2>Treatment notes</h2>
         <p class="full-note">{{ consultation.note }}</p>
+      </section>
+      <section class="card detail-card">
+        <h2>Recorded by</h2>
+        <p>{{ creatorName }}</p>
+        <p class="muted">{{ consultation.created_by.email }}</p>
       </section>
     </div>
   </template>

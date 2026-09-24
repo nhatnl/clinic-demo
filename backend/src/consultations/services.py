@@ -1,6 +1,8 @@
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
+from src.auth import exceptions as auth_exceptions
+from src.auth.models import User
 from src.consultations import exceptions
 from src.consultations.models import Consultation
 from src.consultations.schemas import ConsultationCreate
@@ -8,7 +10,15 @@ from src.diagnosis.model import Diagnosis
 from src.patients.models import Patient
 
 
-def create_consultation(data: ConsultationCreate, session: Session) -> Consultation:
+def create_consultation(
+    data: ConsultationCreate,
+    session: Session,
+    current_user: dict,
+) -> Consultation:
+    creator = session.get(User, int(current_user["id"]))
+    if creator is None:
+        raise auth_exceptions.UserNotFound
+
     patient = session.get(Patient, data.patient_id)
     if patient is None:
         raise exceptions.PatientNotFound
@@ -27,6 +37,8 @@ def create_consultation(data: ConsultationCreate, session: Session) -> Consultat
     consultation = Consultation(
         patient_id=data.patient_id,
         patient=patient,
+        created_by_id=creator.id,
+        created_by=creator,
         note=data.note,
         diagnoses=diagnoses,
     )
@@ -44,6 +56,7 @@ def list_consultations(
 ) -> list[Consultation]:
     statement = select(Consultation).options(
         selectinload(Consultation.patient),
+        selectinload(Consultation.created_by),
         selectinload(Consultation.diagnoses),
     )
 
@@ -75,6 +88,7 @@ def get_consultation(consultation_id: int, session: Session) -> Consultation:
         .where(Consultation.id == consultation_id)
         .options(
             selectinload(Consultation.patient),
+            selectinload(Consultation.created_by),
             selectinload(Consultation.diagnoses),
         )
     ).first()

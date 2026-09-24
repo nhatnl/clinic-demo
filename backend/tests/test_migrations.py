@@ -28,6 +28,8 @@ class MigrationTests(unittest.TestCase):
         self.assertIn("'admin@kyanon.digital'", sql)
         self.assertIn("'ACTIVE'", sql)
         self.assertIn("'ADMIN'", sql)
+        self.assertIn("ALTER TABLE consultations ADD COLUMN created_by_id INTEGER", sql)
+        self.assertIn("FOREIGN KEY(created_by_id) REFERENCES users (id)", sql)
         admin_hash = re.search(r"\$argon2id\$[^']+", sql)
         self.assertIsNotNone(admin_hash)
         self.assertTrue(PasswordHash.recommended().verify("Admin@123", admin_hash.group()))

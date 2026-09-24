@@ -4,10 +4,15 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import or_
 from sqlmodel import Session, select
 
+from src.auth.dependencies import get_current_user
 from src.database import get_session
 from src.diagnosis.model import Diagnosis
 
-router = APIRouter(prefix="/diagnosis", tags=["Diagnosis"])
+router = APIRouter(
+    prefix="/diagnosis",
+    tags=["Diagnosis"],
+    dependencies=[Depends(get_current_user)],
+)
 SessionDep = Annotated[Session, Depends(get_session)]
 
 

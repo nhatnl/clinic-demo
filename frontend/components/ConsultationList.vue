@@ -70,6 +70,13 @@ function date(value: string) {
         timeZone: 'Asia/Ho_Chi_Minh',
       }).format(parsed)
 }
+function creatorName(item: Consultation) {
+  return (
+    [item.created_by.first_name, item.created_by.last_name]
+      .filter(Boolean)
+      .join(' ') || item.created_by.email
+  )
+}
 const todayCount = computed(
   () =>
     data.value.filter(
@@ -220,6 +227,7 @@ const todayCount = computed(
             <tr>
               <th>PATIENT</th>
               <th>VISIT DATE</th>
+              <th>RECORDED BY</th>
               <th>DIAGNOSIS</th>
               <th>TREATMENT NOTES</th>
               <th><span class="sr-only">Actions</span></th>
@@ -242,6 +250,10 @@ const todayCount = computed(
                   </div>
                 </td>
                 <td class="nowrap">{{ date(item.created_at) }}</td>
+                <td>
+                  <strong>{{ creatorName(item) }}</strong>
+                  <small>{{ item.created_by.email }}</small>
+                </td>
                 <td>
                   <div class="code-list">
                     <span
@@ -272,7 +284,7 @@ const todayCount = computed(
                 :id="`note-${item.id}`"
                 class="detail-row"
               >
-                <td colspan="5">
+                <td colspan="6">
                   <div class="consultation-detail">
                     <div>
                       <h3>Diagnoses</h3>

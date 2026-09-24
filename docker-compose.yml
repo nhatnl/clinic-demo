@@ -8,11 +8,12 @@ services:
       POSTGRES_DB: ${DB_NAME:?Set DB_NAME in .env}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      test:
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
       interval: 5s
       retries: 10
   backend:
@@ -20,14 +21,20 @@ services:
     environment:
       DATABASE_URL: postgresql://${DB_USER:?Set DB_USER in .env}:${DB_PASSWORD:?Set DB_PASSWORD in .env}@db:5432/${DB_NAME:?Set DB_NAME in .env}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
-    command: sh -c "alembic upgrade head && exec uvicorn src.main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "alembic upgrade head && python scripts/import_icd10cm_data.py --limit=100 && exec uvicorn src.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')",
+        ]
       interval: 5s
       retries: 10
   frontend:

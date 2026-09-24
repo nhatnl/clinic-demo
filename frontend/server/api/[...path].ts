@@ -30,6 +30,7 @@ function validConsultation(value: unknown): boolean {
     typeof value.patient.id === 'number' &&
     typeof value.patient.name === 'string' &&
     typeof value.patient.age === 'number' &&
+    validCreator(value.created_by) &&
     typeof value.note === 'string' &&
     typeof value.created_at === 'string' &&
     typeof value.updated_at === 'string' &&
@@ -46,6 +47,17 @@ function validPatient(value: unknown): boolean {
     typeof value.last_name === 'string' &&
     typeof value.age === 'number' &&
     typeof value.gender === 'string'
+  )
+}
+
+function validCreator(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'number' &&
+    typeof value.email === 'string' &&
+    (value.first_name === null || typeof value.first_name === 'string') &&
+    (value.last_name === null || typeof value.last_name === 'string') &&
+    typeof value.role === 'number'
   )
 }
 

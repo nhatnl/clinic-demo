@@ -26,6 +26,13 @@ test(
     const consultation = {
       id: 1,
       patient: { id: 7, name: 'Alex Smith', age: 32 },
+      created_by: {
+        id: 42,
+        email: 'doctor@clinic.test',
+        first_name: 'Alex',
+        last_name: 'Doctor',
+        role: 2,
+      },
       note: 'Follow up in one week.',
       diagnoses: [{ code: diagnosis.code, name: diagnosis.name, description: null }],
       created_at: '2026-09-24T08:00:00Z',
@@ -146,11 +153,17 @@ test(
     })
     upstream.listen(0, '127.0.0.1')
     await once(upstream, 'listening')
+    const portProbe = createServer()
+    portProbe.listen(0, '127.0.0.1')
+    await once(portProbe, 'listening')
+    const appPort = portProbe.address().port
+    await new Promise((resolve) => portProbe.close(resolve))
     const app = spawn(process.execPath, ['.output/server/index.mjs'], {
       cwd: new URL('..', import.meta.url),
       env: {
         ...process.env,
-        NITRO_PORT: '0',
+        PORT: String(appPort),
+        NITRO_PORT: String(appPort),
         NITRO_HOST: '127.0.0.1',
         NUXT_API_BASE: `http://127.0.0.1:${upstream.address().port}`,
       },
@@ -259,6 +272,7 @@ test(
       assert.ok(requests.some((item) => item.url === '/consultation?patient_id=7'))
       const consultationPage = await (await request('/consultations/1', { headers })).text()
       assert.match(consultationPage, /Follow up in one week/)
+      assert.match(consultationPage, /Alex Doctor/)
       assert.match(consultationPage, /\/patients\/7/)
       assert.deepEqual(
         await (await request('/api/diagnosis?search=A00', { headers })).json(),
@@ -374,7 +388,11 @@ test(
     } finally {
       const exited = once(app, 'exit')
       app.kill('SIGTERM')
-      await exited
+      await Promise.race([exited, delay(2000)])
+      if (app.exitCode === null) {
+        app.kill('SIGKILL')
+        await exited
+      }
       upstream.closeAllConnections()
       await new Promise((resolve) => upstream.close(resolve))
     }

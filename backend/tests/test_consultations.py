@@ -5,6 +5,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine, select
 
+from src.auth.constants import Roles
+from src.auth.dependencies import get_current_user
+from src.auth.models import User
 from src.consultations.models import Consultation, ConsultationDiagnosis
 from src.database import get_session
 from src.diagnosis.model import Diagnosis
@@ -22,6 +25,7 @@ class ConsultationApiTest(unittest.TestCase):
         SQLModel.metadata.create_all(
             self.engine,
             tables=[
+                User.__table__,
                 Patient.__table__,
                 Diagnosis.__table__,
                 Consultation.__table__,
@@ -30,6 +34,14 @@ class ConsultationApiTest(unittest.TestCase):
         )
         with Session(self.engine) as session:
             session.add_all([
+                User(
+                    id=1,
+                    email="doctor@example.com",
+                    first_name="An",
+                    last_name="Doctor",
+                    role=Roles.DOCTOR,
+                    password_hash="test",
+                ),
                 Patient(id=1, first_name="An", last_name="Nguyen", age=32),
                 Patient(id=2, first_name="Binh", last_name="Tran", age=45),
                 Diagnosis(
@@ -49,6 +61,10 @@ class ConsultationApiTest(unittest.TestCase):
                 yield session
 
         app.dependency_overrides[get_session] = override_session
+        app.dependency_overrides[get_current_user] = lambda: {
+            "id": "1",
+            "role": Roles.DOCTOR,
+        }
         self.client = TestClient(app)
 
     def tearDown(self) -> None:
@@ -79,6 +95,16 @@ class ConsultationApiTest(unittest.TestCase):
         body = response.json()
         self.assertEqual(body["note"], "Prescribe oral rehydration")
         self.assertEqual(body["patient"], {"id": 1, "name": "An Nguyen", "age": 32})
+        self.assertEqual(
+            body["created_by"],
+            {
+                "id": 1,
+                "email": "doctor@example.com",
+                "first_name": "An",
+                "last_name": "Doctor",
+                "role": Roles.DOCTOR,
+            },
+        )
         self.assertEqual({item["code"] for item in body["diagnoses"]}, {"A00.0", "B01.1"})
         self.assertEqual(body["diagnoses"][0].keys(), {"code", "name", "description"})
         self.assertIn("created_at", body)
@@ -179,6 +205,24 @@ class ConsultationApiTest(unittest.TestCase):
             self.client.get("/diagnosis/", params={"search": "x" * 101}).status_code,
             422,
         )
+
+    def test_clinical_routes_require_authentication(self) -> None:
+        app.dependency_overrides.pop(get_current_user)
+        self.assertEqual(self.client.get("/consultation").status_code, 401)
+        self.assertEqual(
+            self.client.get("/diagnosis/", params={"search": "A00"}).status_code,
+            401,
+        )
+
+    def test_unknown_creator_is_rejected_without_writes(self) -> None:
+        app.dependency_overrides[get_current_user] = lambda: {
+            "id": "999",
+            "role": Roles.DOCTOR,
+        }
+        response = self.create()
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(), {"detail": "Invalid authentication credentials"})
+        self.assertEqual(self.count(), 0)
 
 
 if __name__ == "__main__":

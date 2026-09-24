@@ -3,6 +3,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
+from src.auth.constants import Roles
+
 DiagnosisCode = Annotated[
     str,
     StringConstraints(strip_whitespace=True, to_upper=True, min_length=1, max_length=8),
@@ -48,11 +50,22 @@ class DiagnosisResponse(BaseModel):
     description: str | None
 
 
+class ConsultationCreatorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    first_name: str | None
+    last_name: str | None
+    role: Roles
+
+
 class ConsultationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     patient: PatientResponse
+    created_by: ConsultationCreatorResponse
     note: str
     diagnoses: list[DiagnosisResponse]
     created_at: datetime
