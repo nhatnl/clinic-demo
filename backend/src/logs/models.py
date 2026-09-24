@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import Column
+from sqlalchemy import JSON, Column
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
 
@@ -13,6 +13,6 @@ class ActivitiesLog(BaseModel, table=True):
     event: str = Field(nullable=False, max_length=50)
     data: dict[str, Any] = Field(
         default_factory=dict,
-        sa_column=Column(JSONB, nullable=False)
-        )
+        sa_column=Column(JSON().with_variant(JSONB, "postgresql"), nullable=False),
+    )
     user_id: int = Field(nullable=False, foreign_key="users.id")

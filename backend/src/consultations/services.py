@@ -15,7 +15,10 @@ def create_consultation(data: ConsultationCreate, session: Session) -> Consultat
 
     diagnoses = list(
         session.exec(
-            select(Diagnosis).where(Diagnosis.code.in_(data.diagnosis_codes))
+            select(Diagnosis).where(
+                Diagnosis.code.in_(data.diagnosis_codes),
+                Diagnosis.is_valid_for_submission.is_(True),
+            )
         ).all()
     )
     if len(diagnoses) != len(data.diagnosis_codes):

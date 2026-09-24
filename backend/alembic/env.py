@@ -24,9 +24,11 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 from sqlmodel import SQLModel
 
-from src.diagnosis.model import Diagnosis  # noqa: E402
-from src.patients.models import Patient  # noqa: E402
-from src.auth.models import User
+from src.auth.models import User  # noqa: E402, F401
+from src.consultations.models import Consultation, ConsultationDiagnosis  # noqa: E402, F401
+from src.diagnosis.model import Diagnosis  # noqa: E402, F401
+from src.logs.models import ActivitiesLog  # noqa: E402, F401
+from src.patients.models import Patient  # noqa: E402, F401
 
 target_metadata = SQLModel.metadata
 

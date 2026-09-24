@@ -4,11 +4,12 @@ from src.auth.constants import Roles
 
 
 class UserResponse(BaseModel):
-    id: str
+    id: int
     email: EmailStr
-    role: str
+    role: Roles
     first_name: str | None
     last_name: str | None
+
 
 class UserCreateAdmin(BaseModel):
     first_name: str | None = Field(default=None, max_length=20)

@@ -49,8 +49,9 @@ def generate_access_token(data: dict, expires_delta: timedelta | None) -> Access
     if expires_delta is not None:
         expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(UTC)
-        +timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_DURATION)
+        expire = datetime.now(UTC) + timedelta(
+            minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_DURATION
+        )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=JWT_ALGORITHM)
     return AccessToken(access_token=encoded_jwt, expired_at=expire.isoformat())

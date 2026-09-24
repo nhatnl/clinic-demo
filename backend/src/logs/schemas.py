@@ -7,6 +7,7 @@ from src.logs.exceptions import InvalidDataField
 
 class ActivityLogCreate(BaseModel):
     event: str = Field(nullable=False, min_length=3, max_length=20)
+    user_id: int = Field(gt=0)
     data: dict[str, Any] = Field(nullable=False, default_factory=dict)
 
     @field_validator("data")
