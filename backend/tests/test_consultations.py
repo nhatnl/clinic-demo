@@ -214,6 +214,21 @@ class ConsultationApiTest(unittest.TestCase):
             401,
         )
 
+    def test_user_role_has_no_clinical_access(self) -> None:
+        app.dependency_overrides[get_current_user] = lambda: {
+            "id": "1",
+            "role": Roles.USER,
+        }
+        self.assertEqual(self.client.get("/consultation").status_code, 403)
+        self.assertEqual(self.client.get("/consultation/1").status_code, 403)
+        self.assertEqual(self.create().status_code, 403)
+        self.assertEqual(
+            self.client.get("/diagnosis/", params={"search": "A00"}).status_code,
+            403,
+        )
+        self.assertEqual(self.client.get("/patients/").status_code, 403)
+        self.assertEqual(self.count(), 0)
+
     def test_unknown_creator_is_rejected_without_writes(self) -> None:
         app.dependency_overrides[get_current_user] = lambda: {
             "id": "999",

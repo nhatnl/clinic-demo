@@ -1,4 +1,6 @@
 import importlib
+import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -6,12 +8,21 @@ from unittest.mock import Mock, patch
 
 from src.diagnosis.model import Diagnosis
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-
 importer = importlib.import_module("scripts.import_icd10cm_data")
 
 
 class DiagnosisImportTests(unittest.TestCase):
+    def test_module_command_runs_from_backend_directory(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "scripts.import_icd10cm_data", "--limit=0"],
+            cwd=Path(__file__).resolve().parents[1],
+            env={**os.environ, "DATABASE_URL": "postgresql://x:x@localhost/x"},
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        self.assertIn("Imported 0 diagnoses", result.stdout)
+
     def test_empty_import_skips_database(self):
         with patch(
             "scripts.import_icd10cm_data.parse_icd10cm_data", return_value=[]

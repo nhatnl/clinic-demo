@@ -41,6 +41,9 @@ def authenticated_user(credential: SignIn, session) -> User:
     if not password_hash.verify(credential.password, existing_user.password_hash):
         raise exceptions.IncorrectPassword
 
+    if existing_user.role == Roles.USER:
+        raise exceptions.ForbiddenError
+
     return existing_user
 
 

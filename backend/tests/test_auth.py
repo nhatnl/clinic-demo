@@ -12,6 +12,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from src.auth.constants import JWT_ALGORITHM, Roles
 from src.auth.dependencies import get_current_user
 from src.auth.exceptions import (
+    ForbiddenError,
     IncorrectPassword,
     InvalidJwtToken,
     UserAlreadyExist,
@@ -68,7 +69,7 @@ class AuthTests(unittest.TestCase):
         duplicate.add.assert_not_called()
 
     def test_authenticate_success_and_failures(self):
-        user = SimpleNamespace(id=7, role=Roles.USER, password_hash="hashed")
+        user = SimpleNamespace(id=7, role=Roles.DOCTOR, password_hash="hashed")
         with self.assertRaises(UserNotFound):
             authenticated_user(self.credentials, SessionStub())
         with patch("src.auth.services.password_hash.verify", return_value=False):
@@ -76,6 +77,9 @@ class AuthTests(unittest.TestCase):
                 authenticated_user(self.credentials, SessionStub(user))
         with patch("src.auth.services.password_hash.verify", return_value=True):
             self.assertIs(authenticated_user(self.credentials, SessionStub(user)), user)
+            user.role = Roles.USER
+            with self.assertRaises(ForbiddenError):
+                authenticated_user(self.credentials, SessionStub(user))
 
     def test_token_round_trip_and_rejection(self):
         data = {"sub": "7", "role": Roles.ADMIN.value}
@@ -170,6 +174,15 @@ class AuthTests(unittest.TestCase):
                     )
 
             with TestClient(app) as client:
+                response = client.post(
+                    "/auth/sign-in", json=self.credentials.model_dump(mode="json")
+                )
+                self.assertEqual(response.status_code, 403)
+                with Session(engine) as session:
+                    user = session.get(User, 1)
+                    user.role = Roles.DOCTOR
+                    session.add(user)
+                    session.commit()
                 response = client.post(
                     "/auth/sign-in", json=self.credentials.model_dump(mode="json")
                 )

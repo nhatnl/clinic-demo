@@ -21,7 +21,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${DB_USER:?Set DB_USER in .env}:${DB_PASSWORD:?Set DB_PASSWORD in .env}@db:5432/${DB_NAME:?Set DB_NAME in .env}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
-    command: sh -c "alembic upgrade head && python scripts/import_icd10cm_data.py --limit=100 && exec uvicorn src.main:app --host 0.0.0.0 --port 8000"
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    command: sh -c "alembic upgrade head && python -m scripts.import_icd10cm_data --limit=100 && exec uvicorn src.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:

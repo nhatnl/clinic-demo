@@ -1,6 +1,6 @@
 import argparse
 
-from parse_icd10cm_data import (
+from scripts.parse_icd10cm_data import (
     DEFAULT_TXT_FILENAME,
     DEFAULT_XML_FILENAME,
     parse_icd10cm_data,

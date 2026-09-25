@@ -34,9 +34,9 @@ diagnoses idempotently, and then starts both applications:
 - Web app: http://localhost:3000
 - FastAPI docs: http://localhost:8000/docs
 
-Use the local review credentials supplied separately by the project owner.
-Credentials and other sensitive values are intentionally not documented in
-this repository.
+The admin email is `admin@kyanon.digital`. Set `ADMIN_PASSWORD` in `.env` before
+the first start, or read the generated password with `docker compose logs backend`.
+A generated password is printed once when the admin is created or rotated by migration.
 
 Stop the stack with `docker compose down`. Add `-v` only when you intentionally
 want to delete the local PostgreSQL data.
@@ -63,7 +63,7 @@ tabular files. Startup imports 100 records; the upsert makes repeated starts
 safe. To import the complete included dataset later, run:
 
 ```sh
-docker compose exec backend python scripts/import_icd10cm_data.py
+docker compose exec backend python -m scripts.import_icd10cm_data
 ```
 
 ## Checks
