@@ -3,6 +3,13 @@ export interface Session {
   role: number
 }
 
+export interface Page<T> {
+  items: T[]
+  total: number
+  page: number
+  page_size: number
+}
+
 export interface Diagnosis {
   code: string
   name: string

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Diagnosis, PatientRecord } from '~/types/clinic'
+import type { Diagnosis, Page, PatientRecord } from '~/types/clinic'
 useHead({ title: 'New consultation · ClinicCare' })
 const { session } = useAuth()
 const route = useRoute()
@@ -11,22 +11,29 @@ const patientId = ref<number | ''>(initialPatientId)
 const patientSearch = ref('')
 const suggestionsOpen = ref(false)
 const activeSuggestion = ref(-1)
+const selectedPatient = ref<PatientRecord | null>(null)
 const { data: patients, status: patientsStatus, error: patientsError, refresh: refreshPatients } =
-  await useFetch<PatientRecord[]>('/api/patients', { default: () => [] })
-const visiblePatients = computed(() => {
-  const name = patientSearch.value.trim().toLowerCase()
-  return patients.value.filter((patient) =>
-    `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(name),
-  )
+  await useFetch<Page<PatientRecord>>('/api/patients', {
+    query: computed(() => ({ page: 1, page_size: 20, ...(patientSearch.value.trim() ? { name: patientSearch.value.trim() } : {}) })),
+    default: () => ({ items: [], total: 0, page: 1, page_size: 20 }),
+  })
+const visiblePatients = computed(() => patients.value.items)
+if (initialPatientId) {
+  selectedPatient.value = patients.value.items.find((patient) => patient.id === initialPatientId) || null
+  if (!selectedPatient.value) {
+    try {
+      selectedPatient.value = await useRequestFetch()<PatientRecord>(`/api/patients/${initialPatientId}`)
+    } catch {
+      // The form still requires the user to choose a patient.
+    }
+  }
+  if (selectedPatient.value)
+    patientSearch.value = `${selectedPatient.value.first_name} ${selectedPatient.value.last_name}`
+}
+watch(patients, () => {
+  activeSuggestion.value = -1
 })
 const activePatient = computed(() => visiblePatients.value[activeSuggestion.value])
-const selectedPatient = computed(() =>
-  patients.value.find((patient) => patient.id === patientId.value),
-)
-watch(patients, () => {
-  if (selectedPatient.value && !patientSearch.value)
-    patientSearch.value = `${selectedPatient.value.first_name} ${selectedPatient.value.last_name}`
-}, { immediate: true })
 const showPatientForm = ref(false)
 const createdPatient = ref<PatientRecord | null>(null)
 const notes = ref('')
@@ -49,6 +56,7 @@ function selectDiagnosis(item: Diagnosis) {
 }
 function selectPatient(patient: PatientRecord) {
   patientId.value = patient.id
+  selectedPatient.value = patient
   patientSearch.value = `${patient.first_name} ${patient.last_name}`
   suggestionsOpen.value = false
 }
@@ -58,6 +66,7 @@ function openSuggestions() {
 }
 function onPatientInput() {
   patientId.value = ''
+  selectedPatient.value = null
   openSuggestions()
 }
 function onPatientKeydown(event: KeyboardEvent) {
@@ -84,7 +93,6 @@ function onPatientFocusOut(event: FocusEvent) {
     suggestionsOpen.value = false
 }
 function onPatientCreated(patient: PatientRecord) {
-  patients.value = [patient, ...patients.value.filter((item) => item.id !== patient.id)]
   selectPatient(patient)
   createdPatient.value = patient
   showPatientForm.value = false

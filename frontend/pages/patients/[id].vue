@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Consultation, PatientRecord } from '~/types/clinic'
+import type { Consultation, Page, PatientRecord } from '~/types/clinic'
 
 const route = useRoute()
 const id = String(route.params.id)
@@ -7,11 +7,14 @@ if (!/^[1-9]\d*$/.test(id)) throw createError({ statusCode: 404, message: 'Patie
 
 const { data: patient, status: patientStatus, error: patientError, refresh: refreshPatient } =
   await useFetch<PatientRecord>(`/api/patients/${id}`)
+const page = ref(1)
+const pageSize = 10
 const { data: consultations, status: consultationsStatus, error: consultationsError, refresh: refreshConsultations } =
-  await useFetch<Consultation[]>('/api/consultation', {
-    query: { patient_id: id },
-    default: () => [],
+  await useFetch<Page<Consultation>>('/api/consultation', {
+    query: computed(() => ({ patient_id: id, page: page.value, page_size: pageSize })),
+    default: () => ({ items: [], total: 0, page: 1, page_size: pageSize }),
   })
+const pages = computed(() => Math.max(1, Math.ceil(consultations.value.total / pageSize)))
 
 useHead({ title: 'Patient detail · ClinicCare' })
 const patientName = computed(() => patient.value
@@ -47,19 +50,19 @@ function date(value: string) {
     <section class="card records-card" :aria-busy="consultationsStatus === 'pending'">
       <div class="card-heading">
         <div>
-          <h2>Consultations <span v-if="!consultationsError && consultationsStatus !== 'pending'" class="count-badge">{{ consultations.length }}</span></h2>
+          <h2>Consultations <span v-if="!consultationsError && consultationsStatus !== 'pending'" class="count-badge">{{ consultations.total }}</span></h2>
           <p>Every recorded visit for this patient</p>
         </div>
       </div>
       <div v-if="consultationsStatus === 'pending'" class="empty-state" role="status"><span class="spinner" /><h3>Loading consultations…</h3></div>
       <div v-else-if="consultationsError" class="empty-state"><h3>Consultations are unavailable</h3></div>
-      <div v-else-if="!consultations.length" class="empty-state"><h3>No consultations yet</h3><p>Record the first visit for this patient.</p></div>
+      <div v-else-if="!consultations.total" class="empty-state"><h3>No consultations yet</h3><p>Record the first visit for this patient.</p></div>
       <div v-else class="table-scroll" tabindex="0" role="region" aria-label="Patient consultations">
         <table>
           <caption class="sr-only">Consultations for {{ patientName }}</caption>
           <thead><tr><th>CONSULTATION</th><th>VISIT DATE</th><th>DIAGNOSES</th><th>TREATMENT NOTES</th><th><span class="sr-only">Actions</span></th></tr></thead>
           <tbody>
-            <tr v-for="item in consultations" :key="item.id">
+            <tr v-for="item in consultations.items" :key="item.id">
               <td>Consultation #{{ item.id }}</td>
               <td class="nowrap">{{ date(item.created_at) }}</td>
               <td><div class="code-list"><span v-for="diagnosis in item.diagnoses" :key="diagnosis.code" class="code-tag" :title="diagnosis.name">{{ diagnosis.code }}</span></div></td>
@@ -68,6 +71,14 @@ function date(value: string) {
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="consultations.total" class="table-footer">
+        <span>Showing {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, consultations.total) }} of {{ consultations.total }} consultations</span>
+        <div class="pagination">
+          <button class="button secondary small" :disabled="page <= 1 || consultationsStatus === 'pending'" @click="page--">Previous</button>
+          <span>{{ page }} / {{ pages }}</span>
+          <button class="button secondary small" :disabled="page >= pages || consultationsStatus === 'pending'" @click="page++">Next</button>
+        </div>
       </div>
     </section>
   </template>

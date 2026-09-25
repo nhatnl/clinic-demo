@@ -61,6 +61,16 @@ function validCreator(value: unknown): boolean {
   )
 }
 
+function validPage(value: unknown, validItem: (item: unknown) => boolean): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.total === 'number' && Number.isInteger(value.total) && value.total >= 0 &&
+    typeof value.page === 'number' && Number.isInteger(value.page) && value.page >= 1 &&
+    typeof value.page_size === 'number' && Number.isInteger(value.page_size) && value.page_size >= 1 &&
+    Array.isArray(value.items) && value.items.every(validItem)
+  )
+}
+
 export default defineEventHandler(async (event) => {
   setHeader(event, 'Cache-Control', 'no-store')
   const path = getRouterParam(event, 'path') || ''
@@ -196,8 +206,9 @@ export default defineEventHandler(async (event) => {
       ? !validPatient(result)
       : consultationDetail
         ? !validConsultation(result)
-        : !Array.isArray(result) ||
-          !result.every(path === 'diagnosis' ? (value) => validDiagnosis(value) && typeof value.is_valid_for_submission === 'boolean' : path === 'patients' ? validPatient : validConsultation))
+        : !validPage(result, path === 'diagnosis'
+          ? (value) => validDiagnosis(value) && isRecord(value) && typeof value.is_valid_for_submission === 'boolean'
+          : path === 'patients' ? validPatient : validConsultation))
   ) {
     throw createError({
       statusCode: 502,

@@ -64,17 +64,27 @@ class PatientSearchTest(unittest.TestCase):
             params={"name": "nguyen", "age_from": 30, "age_to": 40},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([item["first_name"] for item in response.json()], ["An"])
+        self.assertEqual([item["first_name"] for item in response.json()["items"]], ["An"])
+        self.assertEqual(response.json()["total"], 1)
 
         response = self.client.get("/patients/", params={"gender": "MALE"})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([item["first_name"] for item in response.json()], ["Binh"])
+        self.assertEqual([item["first_name"] for item in response.json()["items"]], ["Binh"])
+
+        first = self.client.get("/patients/", params={"page_size": 1}).json()
+        second = self.client.get("/patients/", params={"page": 2, "page_size": 1}).json()
+        self.assertEqual((first["total"], first["page"], first["page_size"]), (2, 1, 1))
+        self.assertEqual([item["id"] for item in first["items"]], [1])
+        self.assertEqual([item["id"] for item in second["items"]], [2])
 
     def test_query_model_validation(self):
         for params in (
-            {"name": "ab"},
+            {"name": ""},
             {"age_from": 50, "age_to": 20},
             {"gender": "UNKNOWN"},
+            {"page": 0},
+            {"page_size": 0},
+            {"page_size": 101},
         ):
             with self.subTest(params=params):
                 self.assertEqual(

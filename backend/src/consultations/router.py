@@ -12,6 +12,7 @@ from src.consultations.schemas import (
     ConsultationResponse,
 )
 from src.database import get_session
+from src.pagination import Page, Pagination
 
 router = APIRouter(
     tags=["Consultations"],
@@ -33,14 +34,15 @@ def create_consultation(
     return services.create_consultation(data, session, current_user)
 
 
-@router.get("/consultation", response_model=list[ConsultationResponse])
+@router.get("/consultation", response_model=Page[ConsultationResponse])
 def list_consultations(
     session: SessionDep,
     params: Annotated[ConsultationQueryParams, Query()],
+    pagination: Annotated[Pagination, Depends()],
 ):
     patient_name = params.patient_name if params.patient_name is not None else params.patient
     return services.list_consultations(
-        session, patient_name, params.diagnosis_code, params.patient_id
+        session, pagination, patient_name, params.diagnosis_code, params.patient_id
     )
 
 

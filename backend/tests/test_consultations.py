@@ -157,7 +157,7 @@ class ConsultationApiTest(unittest.TestCase):
         def ids(params=None):
             response = self.client.get("/consultation", params=params)
             self.assertEqual(response.status_code, 200)
-            return [item["id"] for item in response.json()]
+            return [item["id"] for item in response.json()["items"]]
 
         self.assertEqual(ids(), [third["id"], second["id"], first["id"]])
         self.assertEqual(ids({"patient": "  nGuYeN  "}), [third["id"], first["id"]])
@@ -168,6 +168,11 @@ class ConsultationApiTest(unittest.TestCase):
         self.assertEqual(ids({"patient_id": 1}), [third["id"], first["id"]])
         self.assertEqual(ids({"patient_id": 2}), [second["id"]])
         self.assertEqual(ids({"patient": "Nobody"}), [])
+        first_page = self.client.get("/consultation", params={"page_size": 2}).json()
+        second_page = self.client.get("/consultation", params={"page": 2, "page_size": 2}).json()
+        self.assertEqual(first_page["total"], 3)
+        self.assertEqual([item["id"] for item in first_page["items"]], [third["id"], second["id"]])
+        self.assertEqual([item["id"] for item in second_page["items"]], [first["id"]])
 
         detail = self.client.get(f"/consultation/{third['id']}")
         self.assertEqual(detail.status_code, 200)
@@ -187,6 +192,8 @@ class ConsultationApiTest(unittest.TestCase):
             {"patient_id": 0},
             {"diagnosis_code": ""},
             {"diagnosis_code": "x" * 9},
+            {"page": 0},
+            {"page_size": 101},
         ):
             with self.subTest(params=params):
                 self.assertEqual(self.client.get("/consultation", params=params).status_code, 422)
@@ -194,12 +201,16 @@ class ConsultationApiTest(unittest.TestCase):
     def test_diagnosis_lookup_finds_codes_and_names(self) -> None:
         by_code = self.client.get("/diagnosis/", params={"search": "a00"})
         self.assertEqual(by_code.status_code, 200)
-        self.assertEqual([item["code"] for item in by_code.json()], ["A00", "A00.0"])
-        self.assertFalse(by_code.json()[0]["is_valid_for_submission"])
-        self.assertTrue(by_code.json()[1]["is_valid_for_submission"])
+        self.assertEqual([item["code"] for item in by_code.json()["items"]], ["A00", "A00.0"])
+        self.assertFalse(by_code.json()["items"][0]["is_valid_for_submission"])
+        self.assertTrue(by_code.json()["items"][1]["is_valid_for_submission"])
         by_name = self.client.get("/diagnosis/", params={"search": "varicella"})
-        self.assertEqual([item["code"] for item in by_name.json()], ["B01.1"])
-        self.assertEqual(self.client.get("/diagnosis/", params={"search": "  "}).json(), [])
+        self.assertEqual([item["code"] for item in by_name.json()["items"]], ["B01.1"])
+        self.assertEqual(self.client.get("/diagnosis/", params={"search": "  "}).json()["total"], 0)
+        self.assertEqual(
+            self.client.get("/diagnosis/", params={"search": "a00", "page_size": 1, "page": 2}).json()["items"][0]["code"],
+            "A00.0",
+        )
         self.assertEqual(self.client.get("/diagnosis/").status_code, 422)
         self.assertEqual(
             self.client.get("/diagnosis/", params={"search": "x" * 101}).status_code,

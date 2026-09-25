@@ -8,6 +8,7 @@ from src.consultations.models import Consultation
 from src.consultations.schemas import ConsultationCreate
 from src.diagnosis.model import Diagnosis
 from src.patients.models import Patient
+from src.pagination import Pagination, paginate
 
 
 def create_consultation(
@@ -50,10 +51,11 @@ def create_consultation(
 
 def list_consultations(
     session: Session,
+    pagination: Pagination,
     patient_name: str | None = None,
     diagnosis_code: str | None = None,
     patient_id: int | None = None,
-) -> list[Consultation]:
+):
     statement = select(Consultation).options(
         selectinload(Consultation.patient),
         selectinload(Consultation.created_by),
@@ -79,7 +81,7 @@ def list_consultations(
         Consultation.created_at.desc(),
         Consultation.id.desc(),
     )
-    return list(session.exec(statement).all())
+    return paginate(session, statement, pagination)
 
 
 def get_consultation(consultation_id: int, session: Session) -> Consultation:

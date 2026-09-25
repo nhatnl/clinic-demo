@@ -45,6 +45,17 @@ test(
       age: 32,
       gender: 'MALE',
     }
+    const pageResponse = (items, url) => {
+      const query = new URL(url, 'http://upstream').searchParams
+      const page = Number(query.get('page') || 1)
+      const page_size = Number(query.get('page_size') || 10)
+      return {
+        items: items.slice((page - 1) * page_size, page * page_size),
+        total: items.length,
+        page,
+        page_size,
+      }
+    }
     let mode = 'ok'
     const requests = []
     const upstream = createServer(async (req, res) => {
@@ -102,15 +113,15 @@ test(
         return
       }
       if (req.url.startsWith('/diagnosis/')) {
-        res.end(JSON.stringify(mode === 'stub' ? null : [diagnosis]))
+        res.end(JSON.stringify(mode === 'stub' ? null : pageResponse([diagnosis], req.url)))
         return
       }
       if (req.url === '/patients/7') {
         res.end(JSON.stringify(patient))
         return
       }
-      if (req.url === '/patients/' && req.method === 'GET') {
-        res.end(JSON.stringify([patient]))
+      if (new URL(req.url, 'http://upstream').pathname === '/patients/' && req.method === 'GET') {
+        res.end(JSON.stringify(pageResponse(mode === 'picker-empty' ? [] : [patient], req.url)))
         return
       }
       if (req.url === '/patients/' && req.method === 'POST') {
@@ -130,7 +141,7 @@ test(
         }
         if (req.method === 'POST') res.writeHead(201)
         res.end(
-          JSON.stringify(req.method === 'POST' ? consultation : [consultation]),
+          JSON.stringify(req.method === 'POST' ? consultation : pageResponse([consultation], req.url)),
         )
         return
       }
@@ -269,14 +280,18 @@ test(
       assert.match(newConsultationPage, /Search by first or last name/)
       assert.match(newConsultationPage, /role="combobox"/)
       assert.match(newConsultationPage, /New patient/)
-      assert.ok(requests.some((item) => item.url === '/consultation?patient_id=7'))
+      mode = 'picker-empty'
+      const linkedConsultationPage = await (await request('/consultations/new?patient_id=7', { headers })).text()
+      assert.match(linkedConsultationPage, /Selected: Alex Smith/)
+      mode = 'ok'
+      assert.ok(requests.some((item) => item.url?.startsWith('/consultation?patient_id=7&')))
       const consultationPage = await (await request('/consultations/1', { headers })).text()
       assert.match(consultationPage, /Follow up in one week/)
       assert.match(consultationPage, /Alex Doctor/)
       assert.match(consultationPage, /\/patients\/7/)
       assert.deepEqual(
         await (await request('/api/diagnosis?search=A00', { headers })).json(),
-        [diagnosis],
+        pageResponse([diagnosis], '/diagnosis/?search=A00'),
       )
       assert.equal(requests.at(-1).url, '/diagnosis/?search=A00')
       await request('/api/consultation?patient=Alex&diagnosis_code=A00.0', {
@@ -292,7 +307,7 @@ test(
       )
       assert.deepEqual(
         await (await request('/api/patients', { headers })).json(),
-        [patient],
+        pageResponse([patient], '/patients/'),
       )
       assert.equal(requests.at(-1).url, '/patients/')
       assert.deepEqual(
@@ -301,6 +316,11 @@ test(
       )
       await request('/api/consultation?patient_id=7', { headers })
       assert.equal(requests.at(-1).url, '/consultation?patient_id=7')
+      assert.deepEqual(
+        await (await request('/api/consultation?page=2&page_size=1', { headers })).json(),
+        pageResponse([consultation], '/consultation?page=2&page_size=1'),
+      )
+      assert.equal(requests.at(-1).url, '/consultation?page=2&page_size=1')
       assert.equal((await request('/api/patients/not-an-id', { headers })).status, 404)
       const patientInput = {
         first_name: 'Alex',

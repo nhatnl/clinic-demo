@@ -2,11 +2,12 @@ from sqlmodel import Session, select
 
 from src.logs.schemas import ActivityLogCreate
 from src.logs.services import create_activity_log
+from src.pagination import Pagination, paginate
 from src.patients.models import Patient
 from src.patients.schemas import PatientCreate, PatientSearchParams, PatientUpdate
 
 
-def search_patients(params: PatientSearchParams, session: Session):
+def search_patients(params: PatientSearchParams, session: Session, pagination: Pagination):
     """Get patients."""
     statement = select(Patient)
     if params.name:
@@ -21,7 +22,7 @@ def search_patients(params: PatientSearchParams, session: Session):
         statement = statement.where(Patient.age <= params.age_to)
     if params.gender is not None:
         statement = statement.where(Patient.gender == params.gender)
-    return list(session.exec(statement.order_by(Patient.id)).all())
+    return paginate(session, statement.order_by(Patient.id), pagination)
 
 
 def create_patient(patient_data: PatientCreate, session: Session, current_user: dict):

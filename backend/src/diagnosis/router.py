@@ -8,6 +8,7 @@ from src.auth.constants import Roles
 from src.auth.dependencies import allowed_roles
 from src.database import get_session
 from src.diagnosis.model import Diagnosis
+from src.pagination import Page, Pagination, paginate
 
 router = APIRouter(
     prefix="/diagnosis",
@@ -17,19 +18,19 @@ router = APIRouter(
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
-@router.get("/", response_model=list[Diagnosis])
+@router.get("/", response_model=Page[Diagnosis])
 def get_diagnosis(
     session: SessionDep,
     search: Annotated[str, Query(min_length=1, max_length=100)],
-) -> list[Diagnosis]:
+    pagination: Annotated[Pagination, Depends()],
+) -> Page[Diagnosis]:
     term = search.strip()
     if not term:
-        return []
-    return list(
-        session.exec(
-            select(Diagnosis)
-            .where(or_(Diagnosis.code.ilike(f"%{term}%"), Diagnosis.name.ilike(f"%{term}%")))
-            .order_by(Diagnosis.code)
-            .limit(100)
-        ).all()
+        return Page(items=[], total=0, **pagination.model_dump())
+    return paginate(
+        session,
+        select(Diagnosis)
+        .where(or_(Diagnosis.code.ilike(f"%{term}%"), Diagnosis.name.ilike(f"%{term}%")))
+        .order_by(Diagnosis.code),
+        pagination,
     )

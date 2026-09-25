@@ -56,6 +56,9 @@ Nuxt app handles this automatically through its HttpOnly session cookie.
 | `GET/POST` | `/patients/` | Search or create patients |
 | `POST` | `/admin/create-user` | Create an account as an administrator |
 
+List routes accept `page` (default 1) and `page_size` (default 10, maximum 100).
+They return `{ "items": [...], "total": 0, "page": 1, "page_size": 10 }`.
+
 ## Diagnosis data
 
 The included parser reads the official April 1, 2026 ICD-10-CM order and

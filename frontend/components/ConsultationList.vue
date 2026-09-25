@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Consultation } from '~/types/clinic'
+import type { Consultation, Page } from '~/types/clinic'
 const props = defineProps<{ search?: boolean }>()
 const route = useRoute()
 const router = useRouter()
@@ -7,7 +7,7 @@ const patient = ref(String(route.query.patient || ''))
 const diagnosis = ref(String(route.query.diagnosis_code || ''))
 const page = ref(1)
 const expanded = ref<string | number | null>(null)
-const query = computed(() =>
+const filters = computed(() =>
   props.search
     ? {
         ...(route.query.patient ? { patient: String(route.query.patient) } : {}),
@@ -17,25 +17,23 @@ const query = computed(() =>
       }
     : {},
 )
-const { data, status, error, refresh } = await useFetch<Consultation[]>(
-  '/api/consultation',
-  { query, default: () => [] },
-)
-// ponytail: paginate the returned list locally; add API pagination when record volume grows.
 const pageSize = 10
+const query = computed(() => ({ ...filters.value, page: page.value, page_size: pageSize }))
+const { data, status, error, refresh } = await useFetch<Page<Consultation>>(
+  '/api/consultation',
+  { query, default: () => ({ items: [], total: 0, page: 1, page_size: pageSize }) },
+)
 const pages = computed(() =>
-  Math.max(1, Math.ceil(data.value.length / pageSize)),
+  Math.max(1, Math.ceil(data.value.total / pageSize)),
 )
-const rows = computed(() =>
-  data.value.slice((page.value - 1) * pageSize, page.value * pageSize),
-)
+const rows = computed(() => data.value.items)
 const applied = computed(() =>
-  Boolean(query.value.patient || query.value.diagnosis_code),
+  Boolean(filters.value.patient || filters.value.diagnosis_code),
 )
 watch(page, () => {
   expanded.value = null
 })
-watch(query, () => {
+watch(filters, () => {
   page.value = 1
   expanded.value = null
 })
@@ -50,6 +48,7 @@ watch(
   },
 )
 async function searchNotes() {
+  page.value = 1
   await router.replace({
     query: {
       ...(patient.value.trim() ? { patient: patient.value.trim() } : {}),
@@ -79,7 +78,7 @@ function creatorName(item: Consultation) {
 }
 const todayCount = computed(
   () =>
-    data.value.filter(
+    data.value.items.filter(
       (item) => date(item.created_at) === date(new Date().toISOString()),
     ).length,
 )
@@ -136,16 +135,16 @@ const todayCount = computed(
     <div class="stat-card">
       <div>
         <span>Total consultations</span
-        ><strong>{{ error || status === 'pending' ? '—' : data.length }}</strong
+        ><strong>{{ error || status === 'pending' ? '—' : data.total }}</strong
         ><small>Recorded consultations</small>
       </div>
       <span class="stat-icon"><AppIcon name="file" /></span>
     </div>
     <div class="stat-card">
       <div>
-        <span>Today’s consultations</span
+        <span>Today's consultations</span
         ><strong>{{ error || status === 'pending' ? '—' : todayCount }}</strong
-        ><small>Clinic time · UTC+7</small>
+        ><small>On this page · UTC+7</small>
       </div>
       <span class="stat-icon warm"><AppIcon name="users" /></span>
     </div>
@@ -171,7 +170,7 @@ const todayCount = computed(
         <h2>
           {{ search ? 'Search results' : 'Consultation history'
           }}<span v-if="!error && status !== 'pending'" class="count-badge">{{
-            data.length
+            data.total
           }}</span>
         </h2>
         <p>
@@ -195,7 +194,7 @@ const todayCount = computed(
       <h3>Records are unavailable</h3>
       <p>Records will appear once the service is connected.</p>
     </div>
-    <div v-else-if="!data.length" class="empty-state">
+    <div v-else-if="!data.total" class="empty-state">
       <span class="empty-icon"
         ><AppIcon :name="search ? 'search' : 'file'"
       /></span>
@@ -309,9 +308,9 @@ const todayCount = computed(
       <div class="table-footer">
         <span
           >Showing {{ (page - 1) * pageSize + 1 }}–{{
-            Math.min(page * pageSize, data.length)
+            Math.min(page * pageSize, data.total)
           }}
-          of {{ data.length }} consultations</span
+          of {{ data.total }} consultations</span
         >
         <div class="pagination">
           <button

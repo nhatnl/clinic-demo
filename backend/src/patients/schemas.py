@@ -31,7 +31,7 @@ class PatientUpdate(BaseModel):
 
 
 class PatientSearchParams(BaseModel):
-    name: str | None = Field(default=None, min_length=3)
+    name: str | None = Field(default=None, min_length=1)
     age_from: int | None = Field(default=None, ge=0, le=150)
     age_to: int | None = Field(default=None, ge=0, le=150)
     gender: Genders | None = Field(default=None)

@@ -10,6 +10,7 @@ from src.patients import services
 from src.patients.dependencies import valid_patient_id
 from src.patients.models import Patient
 from src.patients.schemas import PatientCreate, PatientSearchParams, PatientUpdate
+from src.pagination import Page, Pagination
 
 router = APIRouter(
     prefix="/patients",
@@ -20,13 +21,14 @@ router = APIRouter(
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
-@router.get("/", response_model=list[Patient])
+@router.get("/", response_model=Page[Patient])
 def search_patients(
     params: Annotated[PatientSearchParams, Query()],
     session: SessionDep,
+    pagination: Annotated[Pagination, Depends()],
 ):
     """Search patients."""
-    return services.search_patients(params, session)
+    return services.search_patients(params, session, pagination)
 
 
 @router.post(
